@@ -2,24 +2,32 @@ package org.example.Assignment;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class FilterInvoiceTest {
 
-    //This is a test of the FilterInvoice function lowValueInvoice with the original
+    //This is a test of the FilterInvoice function lowValueInvoice with the stubbed
     //database dependency.
     @Test
-    void filterInvoiceTest() {
-        FilterInvoice filterInvoice= new FilterInvoice(); //This creates a new instacne of the filter invoice class
+    void filterInvoiceStubbedTest() {
+        QueryInvoicesDAO dao= mock(QueryInvoicesDAO.class); //This mocks the QueryInvoicesDAO class, allowing us to mock the database
+        
+        List<Invoice> listInvoices=List.of(               // We are creating a list of invoices here
+                new Invoice("Sarah", 10), //This invoice has a value of 10
+                new Invoice("Tom", 110), //This invoice has a value of 100
+                new Invoice("Smith", 120) //This invoice has a value of 120
+        );
+        when(dao.all()).thenReturn(listInvoices); //This mocks the dao.all() function so that when it is called, we stub it with the list of invoices we previously created
 
-        Invoice invoice1 =new Invoice("Sarah", 5); //This creates an invoice with the value of five
-        Invoice invoice2=new Invoice("Tom", 110); //This creates an invoice with the value of 110
+        FilterInvoice filterInvoice=new FilterInvoice(dao); //We are now creating a Filter Invoice objects with the mocked dao object
 
-        filterInvoice.dao.save(invoice1); //This saves the first invoice to our filterInvoice object
-        filterInvoice.dao.save(invoice2); //This saves the second invoice to our filterInvoice object
+        assertThat(filterInvoice.lowValueInvoices().size()).isEqualTo(1); //SInce only one of our invoices in our invoice list was less than 100,
+                                                                                  // the function lowValueInvoices should only return a list of size one
 
-        assertThat(filterInvoice.lowValueInvoices().size()).isEqualTo(1); //Since only one of our invoices is less than 100,
-                                                                                    // the returned list should be of size one
     }
 }

@@ -16,7 +16,7 @@ class FilterInvoiceTest {
     @Test
     void filterInvoiceStubbedTest() {
         QueryInvoicesDAO dao= mock(QueryInvoicesDAO.class); //This mocks the QueryInvoicesDAO class, allowing us to mock the database
-        
+
         List<Invoice> listInvoices=List.of(               // We are creating a list of invoices here
                 new Invoice("Sarah", 10), //This invoice has a value of 10
                 new Invoice("Tom", 110), //This invoice has a value of 100

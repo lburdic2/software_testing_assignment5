@@ -5,54 +5,49 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SAP_BasedInvoiceSenderTest {
 
-    //This method tests the function sendLowValuedInvoices of the class SAP_BasedInvoiceSender with the mocked dependencies
-    //FilterInvoice and SAP
+    //This function tests the sendLowValuedInvoices function of the SAP_BasedInvoiceSender class.
+    //It ensures that an exception is thrown and the invoices that caused the exception are returned
     @Test
-    void  testWhenLowInvoicesSent() {
-        FilterInvoice filter=mock(FilterInvoice.class); //This is a mocked object of the FilterInvoice class
-        SAP sap=mock(SAP.class); //This is a mocked SAP class object
+    void testThrowExceptionWhenBadInvoice() throws FailToSendSAPInvoiceException {
+        FilterInvoice filter=mock(FilterInvoice.class); //This is a mock object of the FilterInvoice class
+        SAP sap=mock(SAP.class); //This is a mock object of the SAP class
 
-        Invoice invoice1=new Invoice("Sarah", 50); //This is an invoice object with the value 50
-        Invoice invoice2=new Invoice("Tom", 25); //This is an invoice object with the value 25
+        Invoice invoice1=new Invoice("Sarah", 10); //This is a normal invoice with the value of 10
+        Invoice invoice2=new Invoice("Tom", 20); //This is a normal invoice with the value of 20
+        Invoice invoice3=new Invoice("Smith", 30); //This is the invoice that will cause the exception. It has a value of 30
 
-        List<Invoice> listInvoices=List.of( //I then put both of the previous invoices into a list
-                invoice1,
-                invoice2
+        List<Invoice> listInvoices=List.of( //This is a list that contains all the invoices I just created
+                invoice3, //I purposefully placed the invoice that will trigger the exception at the first index of the list
+                invoice2, //this is so the send function will be called upon it first I can then verify that the send function was called upon the other two invoices
+                invoice1  //if it was, this means that the exception did not disrupt the running of the program and was caught succesfully
         );
 
-        when(filter.lowValueInvoices()).thenReturn(listInvoices); //This is a when then statement. When the lowValueInvoices function is called on the
-                                                                  //mocked filter object, the listInvoices is returned
+        when(filter.lowValueInvoices()).thenReturn(listInvoices); //This is a when then statement. WHen the function lowValueInvoices is called on the
+                                                                  //filter object, the list listInvoices is returned. It is a stub
 
-        SAP_BasedInvoiceSender sender=new SAP_BasedInvoiceSender(filter, sap); //This creates a SAP_BasedInvoiceSender object with the two mocked dependencies
-        sender.sendLowValuedInvoices(); //This calls the sendLowValuedInvoices function on the SAP_BasedInvoiceSender object
+        doThrow(new FailToSendSAPInvoiceException("Failed to send invoice")).when(sap).send(invoice3); //This causes the FailToSendSAPInvoiceException exception to be
+                                                                                                      //thrown when the sap object has the function send called upon it with the argument invoice3
 
-        verify(sap, times(1)).send(invoice1); //This verifies that when sendLowValuedInvoices was called on sender, the mocked dependency, sap, had its function send called once
-                                                                     //with the argument invoice1
-        verify(sap, times(1)).send(invoice2); //This verifies that when sendLowValuedInvoices was called, the mocked dependency, sap, had its send function called once with the argument invoice2
-        verify(sap, times(2)).send(any(Invoice.class)); //This verifies that sap's function send was called twice in total with the argument being any object of the class Invoice
+        SAP_BasedInvoiceSender sender= new SAP_BasedInvoiceSender(filter, sap); //This creates an instance of the SAP_BasedInvoiceSender class with the mocked dependencies
 
-    }
+        List<Invoice> returnedList=sender.sendLowValuedInvoices(); //This collects the list returned by the sendLowValuedInvoices function into another list called returnedList
 
-    //This function tests the function sendLowValuedInvoices when no invoices are sent from the FilterInvoice object
-    @Test
-    void  testWhenNoInvoices() {
-        FilterInvoice filter=mock(FilterInvoice.class); //This is a mocked object of the FilterInvoice class
-        SAP sap=mock(SAP.class); //This is a mocked SAP class object
+        assertThat(returnedList.size()).isEqualTo(1); //This checks that the returnedList only contains one element
+        assertThat(returnedList.getFirst()).isEqualTo(invoice3); //This line checks that the one element that the returnedList contains is indeed invoice3
 
-        List<Invoice> listInvoice=List.of(); //This creates an empty list.
+        verify(sap, times(1)).send(invoice3); //This verifies that the sap object had the function send called only once with invoice 3
+        verify(sap, times(1)).send(invoice2); //This verifies that the sap object had the function send called only once with invoice2.
+                                                                     //if it passes, then the exception was handled gracefully and did not stop the program
+        verify(sap, times(1)).send(invoice1); //This verifies that the sap object had the function send called only once with invoice1
+                                                                     //if it passes, then the exception was handled gracefully and did not stop the program
 
-        when(filter.lowValueInvoices()).thenReturn(listInvoice); //This is a when then statement. That means that when lowValueInvoices
-                                                                 //is called on the filter object, the list listInvoice will be returned
-        SAP_BasedInvoiceSender sender=new SAP_BasedInvoiceSender(filter, sap); //This creates a SAP_BasedInvoiceSender object with the two mocked dependencies
-        sender.sendLowValuedInvoices(); //This calls the sendLowValuedInvoices function on the SAP_BasedInvoiceSender object
 
-        verify(sap, times(0)).send(any(Invoice.class)); //This verifies that the sap object never had its send function called upon it
-                                                                               //with an argument of any object of the invoice class
 
     }
 }
